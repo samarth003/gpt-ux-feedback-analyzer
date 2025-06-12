@@ -27,4 +27,4 @@ An AI-powered tool that helps product and UX teams analyze large volumes of user
 - pip install requirements.txt
 
 3. Launch the app
-- streamlit run app/streamlit_app.py
+- streamlit run app/fb_analyzer_app.py
