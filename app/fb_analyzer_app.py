@@ -8,6 +8,7 @@ from src.preprocessing import load_and_clean_data, vectorize_sentences
 from src.clustering import cluster_feedback
 from src.bertopic import cluster_with_bertopic
 from src.gpt_summary import group_feedback_by_topic, build_prompt_for_topic, get_gpt_insight
+from src.hf_summary import get_hf_summary
 
 st.title("GPT-Powered UX Feedback Analyzer")
 
@@ -45,14 +46,28 @@ if uploaded_file:
     
     # Group feedbacks by topic
     topic_groups = group_feedback_by_topic(df, text_col='feedback', topic_col='topic')
+    model_choice = st.selectbox("Choose summarizer", ["Hugging Face (BART)", "OpenAI (GPT)", "Ollama (Mistral)"])
 
     for topic_id, feedbacks in topic_groups.items():
+        if topic_id == -1:
+            continue
         st.subheader(f"GPT Summary for Topic {topic_id}")
         if len(feedbacks) < 2:
             st.info("Not enough data to summarize this topic.")
             continue
-
+        summary = None
         if st.button(f"Summarize Topic {topic_id}"):
-            prompt = build_prompt_for_topic(feedbacks)
-            summary = get_gpt_insight(prompt)
-            st.write(summary)
+            if model_choice == "Hugging Face (BART)":
+                summary = get_hf_summary(feedbacks)
+            elif model_choice == "OpenAI (GPT)":
+                prompt = build_prompt_for_topic(feedbacks)
+                # summary = get_gpt_insight(prompt)
+                summary = "[OpenAI summary disabled – uncomment call to enable]"
+                pass
+            elif model_choice == "Ollama (Mistral)":
+                # summary = get_ollama_summary(feedbacks)  # to be implemented
+                summary = "[Ollama summary placeholder]"
+                pass
+
+            with st.expander(f"Topic {topic_id} summary"):
+                st.markdown(summary)
