@@ -7,6 +7,7 @@ import pandas as pd
 from src.preprocessing import load_and_clean_data, vectorize_sentences
 from src.clustering import cluster_feedback
 from src.bertopic import cluster_with_bertopic
+from src.gpt_summary import group_feedback_by_topic, build_prompt_for_topic, get_gpt_insight
 
 st.title("GPT-Powered UX Feedback Analyzer")
 
@@ -41,3 +42,17 @@ if uploaded_file:
             cluster_texts = df[df['cluster'] == i]['feedback'].tolist()[:5]
             for text in cluster_texts:
                 st.markdown(f"- {text}")
+    
+    # Group feedbacks by topic
+    topic_groups = group_feedback_by_topic(df, text_col='feedback', topic_col='topic')
+
+    for topic_id, feedbacks in topic_groups.items():
+        st.subheader(f"GPT Summary for Topic {topic_id}")
+        if len(feedbacks) < 2:
+            st.info("Not enough data to summarize this topic.")
+            continue
+
+        if st.button(f"Summarize Topic {topic_id}"):
+            prompt = build_prompt_for_topic(feedbacks)
+            summary = get_gpt_insight(prompt)
+            st.write(summary)
