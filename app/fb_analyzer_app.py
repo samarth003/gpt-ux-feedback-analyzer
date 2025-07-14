@@ -17,6 +17,31 @@ st.title("GPT-Powered UX Feedback Analyzer")
 uploaded_file = st.file_uploader("Upload a CSV file with feedback", type="csv")
 use_bertopic = st.sidebar.checkbox("Use BERTopic instead of KMeans", value=True)
 
+def display_structured_summary(summary):
+    if "Main Complaints" in summary:
+        try:
+            parts = summary.split("Feature Requests:")
+            complaints = parts[0].replace("Main Complaints:", "").strip()
+            rest = parts[1].split("Tone:")
+            features = rest[0].strip()
+            tone = rest[1].strip()
+
+            st.markdown("### 🔴 Main Complaints")
+            for line in complaints.split("\n"):
+                if line.strip():
+                    st.markdown(f"- {line.strip()}")
+
+            st.markdown("### 🟢 Feature Requests")
+            for line in features.split("\n"):
+                if line.strip():
+                    st.markdown(f"- {line.strip()}")
+
+            st.markdown(f"### 🟡 Tone: **{tone}**")
+        except Exception:
+            st.markdown(summary)
+    else:
+        st.markdown(summary)
+
 if uploaded_file:
     df = load_and_clean_data(uploaded_file)
     st.write("Cleaned Feedback Sample:")
@@ -35,7 +60,7 @@ if uploaded_file:
             topic_feedbacks = df[df['topic'] == topic_num]['feedback'].tolist()[:5]
             for fb in topic_feedbacks:
                 st.markdown(f"- {fb}")
-    else:    
+    else:
         embeddings, model = vectorize_sentences(df['cleaned'])
         labels, _ = cluster_feedback(embeddings)
         df['cluster'] = labels
@@ -45,8 +70,7 @@ if uploaded_file:
             cluster_texts = df[df['cluster'] == i]['feedback'].tolist()[:5]
             for text in cluster_texts:
                 st.markdown(f"- {text}")
-    
-    # Group feedbacks by topic
+
     topic_groups = group_feedback_by_topic(df, text_col='feedback', topic_col='topic')
     model_choice = st.selectbox("Choose summarizer", ["HuggingFace-BART", "OpenAI-GPT", "Ollama-MISTRAL"])
 
@@ -59,17 +83,15 @@ if uploaded_file:
             continue
         summary = None
         if st.button(f"Summarize Topic {topic_id}"):
-            if model_choice == "HuggingFace-BART":
-                summary = get_hf_summary(feedbacks)
-            elif model_choice == "OpenAI-GPT":
-                prompt = build_prompt_for_topic(feedbacks)
-                # summary = get_gpt_insight(prompt)
-                summary = "[OpenAI summary disabled – uncomment call to enable]"
-                pass
-            elif model_choice == "Ollama-MISTRAL":
-                summary = get_ollama_summary(feedbacks)
-                # summary = "[Ollama summary placeholder]"
-                pass
+            with st.spinner(f"Summarizing Topic {topic_id}..."):
+                if model_choice == "HuggingFace-BART":
+                    summary = get_hf_summary(feedbacks)
+                elif model_choice == "OpenAI-GPT":
+                    prompt = build_prompt_for_topic(feedbacks)
+                    summary = "[OpenAI summary disabled – uncomment call to enable]"
+                    # summary = get_gpt_insight(prompt)
+                elif model_choice == "Ollama-MISTRAL":
+                    summary = get_ollama_summary(feedbacks)
 
-            with st.expander(f"Topic {topic_id} summary"):
-                st.markdown(summary)
+            with st.expander(f"Topic {topic_id} Summary"):
+                display_structured_summary(summary)
