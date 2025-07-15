@@ -81,17 +81,18 @@ if uploaded_file:
         if len(feedbacks) < 2:
             st.info("Not enough data to summarize this topic.")
             continue
-        summary = None
+        summary_key = f"summary_{topic_id}"
         if st.button(f"Summarize Topic {topic_id}"):
-            with st.spinner(f"Summarizing Topic {topic_id}..."):
-                if model_choice == "HuggingFace-BART":
-                    summary = get_hf_summary(feedbacks)
-                elif model_choice == "OpenAI-GPT":
-                    prompt = build_prompt_for_topic(feedbacks)
-                    summary = "[OpenAI summary disabled – uncomment call to enable]"
-                    # summary = get_gpt_insight(prompt)
-                elif model_choice == "Ollama-MISTRAL":
-                    summary = get_ollama_summary(feedbacks)
+            if summary_key not in st.session_state:
+                with st.spinner(f"Summarizing Topic {topic_id}..."):
+                    if model_choice == "HuggingFace-BART":
+                        st.session_state[summary_key] = get_hf_summary(feedbacks)
+                    elif model_choice == "OpenAI-GPT":
+                        prompt = build_prompt_for_topic(feedbacks)
+                        st.session_state[summary_key] = "[OpenAI summary disabled \u2013 uncomment call to enable]"
+                        # st.session_state[summary_key] = get_gpt_insight(prompt)
+                    elif model_choice == "Ollama-MISTRAL":
+                        st.session_state[summary_key] = get_ollama_summary(feedbacks)
 
             with st.expander(f"Topic {topic_id} Summary"):
-                display_structured_summary(summary)
+                display_structured_summary(st.session_state[summary_key])
